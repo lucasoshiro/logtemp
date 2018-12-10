@@ -9,6 +9,11 @@ import json
 import re
 import os
 
+BEFORE_SAMPLES = 20
+STRESS_SAMPLES = 40
+AFTER_SAMPLES  = 1200
+INTERVAL       = 1
+
 def get_temp():
     cmd = 'vcgencmd measure_temp'
     temp_regex = 'temp=([0-9.]+)\'C'
@@ -25,7 +30,7 @@ def sample(n, workers):
             'temperature': get_temp(),
             'workers':     workers
         }
-        sleep(1)
+        sleep(INTERVAL)
         return s
 
     stress = subprocess.Popen(
@@ -44,18 +49,20 @@ def main():
                             workers   INTEGER)''')
 
     for i in range(5):
-        samples = sample(20, 0) + sample(40, i) + sample(1200, 0)
+        samples = sample(BEFORE_SAMPLES, 0) + sample(STRESS_SAMPLES, i) + sample(AFTER_SAMPLES, 0)
+
         with sqlite3.connect('buffer.sqlite') as conn:
             statement = 'INSERT INTO logtemp VALUES {}'.format(
-                ', '.join(['({}, {}, {}, {})'.format(
-                    sample['timestamp'], i, sample['temp'], sample['workers'])
-                           for sample in samples]))
+                ', '.join(
+                    ['({}, {}, {}, {})'.format(
+                        sample['timestamp'], i, sample['temp'], sample['workers'])
+                     for sample in samples]))
+            conn.execute(statement)
 
     with sqlite3.connect('buffer.sqlite') as conn:
         cursor = conn.execute('SELECT * FROM logtemp')
         sample_0_4 = [dict(zip(['timestamp', 'iteration', 'temp', 'workers'])) for t in cursor]
 
-    # sample_0_4 = dict((i, sample(20, 0) + sample(40, i) + sample(1200, 0)) for i in range(5))
     print(json.dumps(sample_0_4))
 
 if __name__ == '__main__':

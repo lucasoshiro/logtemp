@@ -34,7 +34,7 @@ def sample(n, workers):
     return results
 
 def main():
-    sample_0_4 = dict((i, sample(20, 0) + sample(40, i) + sample(600, 0)) for i in range(5))
+    sample_0_4 = dict((i, sample(20, 0) + sample(40, i) + sample(1200, 0)) for i in range(5))
     print(json.dumps(sample_0_4))
 
 if __name__ == '__main__':
